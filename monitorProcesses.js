@@ -1,4 +1,5 @@
 const { exec } = require("child_process");
+const pidusage = require("pidusage");
 const iconv = require("iconv-lite");
 
 function getProcessesAndMemoryUsage() {
@@ -7,7 +8,7 @@ function getProcessesAndMemoryUsage() {
   exec(
     tasklistCommand,
     { encoding: "buffer" },
-    (err, tasklistOutput, stderr) => {
+    async (err, tasklistOutput, stderr) => {
       if (err) {
         console.error(`Error in tasklist command: ${stderr}`);
         return;
@@ -28,14 +29,22 @@ function getProcessesAndMemoryUsage() {
         const processName = process[0].replace('"', "");
         const processId = process[1].replace('"', "");
         const cpuTime = process[4].replace('"', "");
-        console.log(
-          `Process Name: ${processName}, Process ID: ${processId}, CPU Time: ${cpuTime}`
-        );
+
+        try {
+          const processStats = await pidusage(processId);
+          console.log(
+            `Process Name: ${processName}, Process ID: ${processId}, CPU Time: ${cpuTime}, Memory Usage: ${JSON.stringify(
+              processStats
+            )}`
+          );
+        } catch (error) {
+          console.error(
+            `Error retrieving process stats for ${processName} (PID ${processId}): ${error.message}`
+          );
+        }
       }
 
-      console.log("Memory Usage:", process.memoryUsage());
-
-      setTimeout(() => {}, 5000); 
+      setTimeout(() => {}, 5000);
     }
   );
 }
